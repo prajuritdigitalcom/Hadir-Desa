@@ -517,44 +517,59 @@ function logAudit(action: string, target: string, email = "admin@ringintunggal.g
 
 // APIs
 app.use("/api", async (req, res, next) => {
-  if (globalDB === null) {
-    if (isSupabaseConfigured()) {
-      try {
-        globalDB = await loadFromSupabase();
-        isConnectedToSupabase = true;
-        isConnectedToSupabaseOnce = true;
-        lastSupabaseError = null;
-        console.log("Successfully connected to Supabase and loaded database.");
-      } catch (err: any) {
-        console.error("Failed to load from Supabase, falling back to local file:", err);
+  try {
+    console.log(`[API Request] Method: ${req.method}, Path: ${req.path}`);
+    if (globalDB === null) {
+      console.log("[API Middleware] globalDB is null, initializing...");
+      if (isSupabaseConfigured()) {
+        console.log("[API Middleware] Supabase is configured. Attempting to load...");
+        try {
+          globalDB = await loadFromSupabase();
+          isConnectedToSupabase = true;
+          isConnectedToSupabaseOnce = true;
+          lastSupabaseError = null;
+          console.log("[API Middleware] Successfully connected to Supabase and loaded database.");
+        } catch (err: any) {
+          console.error("[API Middleware] Failed to load from Supabase, falling back to local file:", err);
+          globalDB = getLocalInitialDB();
+          isConnectedToSupabase = false;
+          lastSupabaseError = err?.message || String(err);
+        }
+      } else {
+        console.log("[API Middleware] Supabase NOT configured. Loading local db.json...");
         globalDB = getLocalInitialDB();
         isConnectedToSupabase = false;
-        lastSupabaseError = err?.message || String(err);
+        lastSupabaseError = "Supabase configuration is missing or invalid in server environment variables.";
       }
-    } else {
-      globalDB = getLocalInitialDB();
-      isConnectedToSupabase = false;
-      lastSupabaseError = "Supabase configuration is missing or invalid in server environment variables.";
+    } else if (isSupabaseConfigured()) {
+      isConnectedToSupabase = isConnectedToSupabaseOnce;
     }
-  } else if (isSupabaseConfigured()) {
-    isConnectedToSupabase = isConnectedToSupabaseOnce;
+
+    if (!globalDB) {
+      throw new Error("Critical Error: globalDB is null after initialization attempts!");
+    }
+
+    // Intercept response to write back dirty database to Supabase before sending!
+    const originalJson = res.json;
+    res.json = async function (this: express.Response, body?: any) {
+      if (dbDirty && globalDB && isSupabaseConfigured()) {
+        console.log("[API Response Interceptor] Database is dirty, saving to Supabase...");
+        try {
+          await saveToSupabase(globalDB);
+          dbDirty = false;
+          console.log("[API Response Interceptor] Successfully saved dirty DB to Supabase.");
+        } catch (err) {
+          console.error("[API Response Interceptor] Failed to save to Supabase:", err);
+        }
+      }
+      return originalJson.call(this, body);
+    } as any;
+
+    next();
+  } catch (err: any) {
+    console.error("[API Middleware] CRITICAL UNHANDLED ERROR:", err);
+    next(err);
   }
-
-  // Intercept response to write back dirty database to Supabase before sending!
-  const originalJson = res.json;
-  res.json = async function (this: express.Response, body?: any) {
-    if (dbDirty && globalDB && isSupabaseConfigured()) {
-      try {
-        await saveToSupabase(globalDB);
-        dbDirty = false;
-      } catch (err) {
-        console.error("Failed to save to Supabase:", err);
-      }
-    }
-    return originalJson.call(this, body);
-  } as any;
-
-  next();
 });
 
 app.get("/api/public/settings", (req, res) => {
@@ -868,15 +883,23 @@ app.post("/api/attendance/checkout", (req, res) => {
 // ADMIN AUTH
 app.post("/api/admin/login", (req, res) => {
   try {
-    const { email, password } = req.body;
-    const dbData = readDB();
+    const { email, password } = req.body || {};
+    console.log(`[Login Attempt] Received login request for email: ${email}`);
     
+    if (!password) {
+      console.warn("[Login Attempt] Password input is missing.");
+      return res.status(400).json({ error: "Kata sandi tidak boleh kosong." });
+    }
+
+    const dbData = readDB();
     if (!dbData) {
+      console.error("[Login Attempt] dbData is null or undefined.");
       return res.status(500).json({ error: "Database tidak terinisialisasi." });
     }
     
     // Ensure settings exists
     if (!dbData.settings) {
+      console.log("[Login Attempt] settings is missing in database, initializing default settings...");
       dbData.settings = {
         office_latitude: -7.161048,
         office_longitude: 111.725902,
@@ -894,12 +917,14 @@ app.post("/api/admin/login", (req, res) => {
     const correctPassword = dbData.settings.admin_password || "admindesa";
 
     if (password === correctPassword) {
+      console.log("[Login Attempt] Login successful!");
       res.json({ token: correctPassword, email: email || "admin@ringintunggal.go.id" });
     } else {
+      console.warn("[Login Attempt] Incorrect password entered.");
       res.status(400).json({ error: "Kata sandi admin salah." });
     }
   } catch (error: any) {
-    console.error("Error in login endpoint:", error);
+    console.error("[Login Attempt] Exception caught:", error);
     res.status(500).json({ error: `Gagal memproses login: ${error?.message || error}` });
   }
 });
@@ -1219,6 +1244,24 @@ app.post("/api/admin/attendance/correct", requireAdmin, (req, res) => {
 app.get("/api/admin/audit_logs", requireAdmin, (req, res) => {
   const dbData = readDB();
   res.json(dbData.audit_logs);
+});
+
+// GLOBAL ERROR HANDLER MIDDLEWARE
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("=== GLOBAL SERVER ERROR ===");
+  console.error(`Method: ${req.method} | URL: ${req.url}`);
+  console.error(`Message: ${err?.message || err}`);
+  console.error(`Stack: ${err?.stack || "No stack trace available"}`);
+  console.error("===========================");
+  
+  res.status(500).json({
+    error: "Terjadi kesalahan internal server (Global Server Error).",
+    message: err?.message || String(err),
+    stack: err?.stack,
+    path: req.url,
+    method: req.method,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Initialize DB seeding on server startup
