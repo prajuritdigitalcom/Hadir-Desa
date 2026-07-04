@@ -11,7 +11,7 @@ import {
   AuditLog, 
   DeviceSession,
   PublicStats
-} from "./src/types.js";
+} from "./src/types";
 
 const app = express();
 const PORT = 3000;
@@ -85,32 +85,37 @@ async function loadFromSupabase(): Promise<DBStructure> {
   }
 
   const fetchPromise = (async () => {
-    const { data, error } = await client
-      .from("hadirdesa_store")
-      .select("data")
-      .eq("id", "main_db")
-      .single();
+    try {
+      const { data, error } = await client
+        .from("hadirdesa_store")
+        .select("data")
+        .eq("id", "main_db")
+        .single();
 
-    if (error) {
-      if (error.code === "PGRST116") { // Record not found
-        const initialDB = getLocalInitialDB();
-        const { error: insertError } = await client
-          .from("hadirdesa_store")
-          .insert({ id: "main_db", data: initialDB });
-        
-        if (insertError) {
-          console.error("Failed to seed initial DB to Supabase:", insertError);
-          throw insertError;
+      if (error) {
+        if (error.code === "PGRST116") { // Record not found
+          const initialDB = getLocalInitialDB();
+          const { error: insertError } = await client
+            .from("hadirdesa_store")
+            .insert({ id: "main_db", data: initialDB });
+          
+          if (insertError) {
+            console.error("Failed to seed initial DB to Supabase:", insertError);
+            throw insertError;
+          }
+          return initialDB;
         }
-        return initialDB;
+        throw error;
       }
-      throw error;
-    }
 
-    if (data && data.data) {
-      return data.data as DBStructure;
+      if (data && data.data) {
+        return data.data as DBStructure;
+      }
+      throw new Error("No data returned from Supabase.");
+    } catch (err: any) {
+      console.error("Error in loadFromSupabase fetchPromise:", err);
+      throw err;
     }
-    throw new Error("No data returned from Supabase.");
   })();
 
   // Handle background rejection to prevent unhandled promise rejection crashes
@@ -138,13 +143,18 @@ async function saveToSupabase(data: DBStructure) {
   }
 
   const savePromise = (async () => {
-    const { error } = await client
-      .from("hadirdesa_store")
-      .upsert({ id: "main_db", data, updated_at: new Date().toISOString() });
+    try {
+      const { error } = await client
+        .from("hadirdesa_store")
+        .upsert({ id: "main_db", data, updated_at: new Date().toISOString() });
 
-    if (error) {
-      console.error("Error writing to Supabase:", error);
-      throw error;
+      if (error) {
+        console.error("Error writing to Supabase:", error);
+        throw error;
+      }
+    } catch (err: any) {
+      console.error("Error in saveToSupabase savePromise:", err);
+      throw err;
     }
   })();
 
