@@ -26,6 +26,7 @@ import { Employee, SystemSettings, Holiday, Announcement, AuditLog, DeviceSessio
 export default function AdminTab() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
+  const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
   const [resetMessage, setResetMessage] = useState("");
@@ -95,7 +96,7 @@ export default function AdminTab() {
     if (savedToken) {
       setToken(savedToken);
       setIsAdminLoggedIn(true);
-      setAdminEmail(localStorage.getItem("hadirdesa_admin_email") || "admin@ringintunggal.go.id");
+      setAdminEmail(localStorage.getItem("hadirdesa_admin_email") || "admin@desa.go.id");
     }
   }, []);
 
@@ -106,7 +107,7 @@ export default function AdminTab() {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "admin@ringintunggal.go.id", password: passwordInput })
+        body: JSON.stringify({ email: emailInput || "admin@desa.go.id", password: passwordInput })
       });
       
       let data: any;
@@ -486,10 +487,11 @@ export default function AdminTab() {
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email Akun</label>
               <input
-                type="text"
-                disabled
-                value="admin@ringintunggal.go.id"
-                className="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-500 focus:outline-none"
+                type="email"
+                placeholder="admin@desa.go.id"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-[#0A3981]"
               />
             </div>
 
@@ -524,17 +526,6 @@ export default function AdminTab() {
             >
               Autentikasi Masuk
             </button>
-
-            <div className="text-center pt-1">
-              <button
-                type="button"
-                onClick={handleResetPassword}
-                disabled={isResetting}
-                className="text-[10px] text-slate-400 hover:text-blue-700 font-bold transition underline decoration-dotted"
-              >
-                {isResetting ? "Mereset..." : "Lupa Kata Sandi? Reset ke Default ('admindesa')"}
-              </button>
-            </div>
           </form>
         </div>
       </div>

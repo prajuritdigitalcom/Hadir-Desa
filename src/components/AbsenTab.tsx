@@ -403,7 +403,7 @@ export default function AbsenTab() {
           <button
             onClick={handleCheckIn}
             disabled={isLocked || isSubmitting || gpsLoading || latitude === null}
-            className="bg-[#0A3981] hover:bg-blue-800 text-white font-heading font-bold text-xs p-4 rounded-2xl shadow-md transition hover:shadow-lg hover:-translate-y-0.5 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-100 disabled:shadow-none disabled:-translate-y-0 active:scale-95 uppercase tracking-wider"
+            className="bg-[#0A3981] hover:bg-blue-800 text-white font-heading font-bold text-[10.5px] p-3.5 rounded-xl shadow-md transition hover:shadow-lg hover:-translate-y-0.5 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-100 disabled:shadow-none disabled:-translate-y-0 active:scale-95 uppercase tracking-wider"
           >
             Absen Masuk (Check-In)
           </button>
@@ -412,7 +412,7 @@ export default function AbsenTab() {
           <button
             onClick={handleCheckOut}
             disabled={isSubmitting || gpsLoading || latitude === null}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-xs p-4 rounded-2xl shadow-md transition hover:shadow-lg hover:-translate-y-0.5 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-100 disabled:shadow-none disabled:-translate-y-0 active:scale-95 uppercase tracking-wider"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-[10.5px] p-3.5 rounded-xl shadow-md transition hover:shadow-lg hover:-translate-y-0.5 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-100 disabled:shadow-none disabled:-translate-y-0 active:scale-95 uppercase tracking-wider"
           >
             Absen Pulang (Check-Out)
           </button>

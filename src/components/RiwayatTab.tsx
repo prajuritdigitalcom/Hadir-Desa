@@ -207,7 +207,7 @@ export default function RiwayatTab({ preselectedEmployeeId }: { preselectedEmplo
   return (
     <div className="space-y-6 pb-20 select-none">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-6">
         <div>
           <h2 className="font-heading text-lg font-extrabold text-[#0A3981]">Riwayat Kehadiran</h2>
           <p className="text-[11px] text-slate-500 font-medium">Transparansi penuh data absensi perangkat desa.</p>
