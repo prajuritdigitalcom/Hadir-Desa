@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { createServer as createViteServer } from "vite";
 import { createClient } from "@supabase/supabase-js";
 import { 
   Employee, 
@@ -58,32 +57,42 @@ async function loadFromSupabase(): Promise<DBStructure> {
     throw new Error("Supabase is not configured.");
   }
 
-  const { data, error } = await supabase
-    .from("hadirdesa_store")
-    .select("data")
-    .eq("id", "main_db")
-    .single();
+  const fetchPromise = (async () => {
+    const { data, error } = await supabase
+      .from("hadirdesa_store")
+      .select("data")
+      .eq("id", "main_db")
+      .single();
 
-  if (error) {
-    if (error.code === "PGRST116") { // Record not found
-      const initialDB = getLocalInitialDB();
-      const { error: insertError } = await supabase
-        .from("hadirdesa_store")
-        .insert({ id: "main_db", data: initialDB });
-      
-      if (insertError) {
-        console.error("Failed to seed initial DB to Supabase:", insertError);
-        throw insertError;
+    if (error) {
+      if (error.code === "PGRST116") { // Record not found
+        const initialDB = getLocalInitialDB();
+        const { error: insertError } = await supabase
+          .from("hadirdesa_store")
+          .insert({ id: "main_db", data: initialDB });
+        
+        if (insertError) {
+          console.error("Failed to seed initial DB to Supabase:", insertError);
+          throw insertError;
+        }
+        return initialDB;
       }
-      return initialDB;
+      throw error;
     }
-    throw error;
-  }
 
-  if (data && data.data) {
-    return data.data as DBStructure;
-  }
-  throw new Error("No data returned from Supabase.");
+    if (data && data.data) {
+      return data.data as DBStructure;
+    }
+    throw new Error("No data returned from Supabase.");
+  })();
+
+  // Use Promise.race to abort after 4 seconds to prevent cold start / function timeouts
+  return Promise.race([
+    fetchPromise,
+    new Promise<DBStructure>((_, reject) =>
+      setTimeout(() => reject(new Error("Koneksi Supabase timeout (melebihi 4 detik).")), 4000)
+    )
+  ]);
 }
 
 async function saveToSupabase(data: DBStructure) {
@@ -91,14 +100,23 @@ async function saveToSupabase(data: DBStructure) {
     return;
   }
 
-  const { error } = await supabase
-    .from("hadirdesa_store")
-    .upsert({ id: "main_db", data, updated_at: new Date().toISOString() });
+  const savePromise = (async () => {
+    const { error } = await supabase
+      .from("hadirdesa_store")
+      .upsert({ id: "main_db", data, updated_at: new Date().toISOString() });
 
-  if (error) {
-    console.error("Error writing to Supabase:", error);
-    throw error;
-  }
+    if (error) {
+      console.error("Error writing to Supabase:", error);
+      throw error;
+    }
+  })();
+
+  return Promise.race([
+    savePromise,
+    new Promise<void>((_, reject) =>
+      setTimeout(() => reject(new Error("Penyimpanan Supabase timeout (melebihi 4 detik).")), 4000)
+    )
+  ]);
 }
 
 // Haversine Distance helper
@@ -1136,10 +1154,15 @@ app.get("/api/admin/audit_logs", requireAdmin, (req, res) => {
 });
 
 // Initialize DB seeding on server startup
-readDB();
+try {
+  readDB();
+} catch (err) {
+  console.error("Gagal memuat awal database:", err);
+}
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

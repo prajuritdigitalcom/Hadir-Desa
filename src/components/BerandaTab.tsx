@@ -289,6 +289,19 @@ export default function BerandaTab({ onSelectEmployeeHistory, onNavigateToTab }:
             <p className="font-sans text-[10px] text-amber-600 italic mt-1">
               * Setelah ditambahkan, lakukan <strong>Redeploy</strong> di Vercel agar perubahan aktif.
             </p>
+            <div className="pt-2 border-t border-amber-100 font-sans">
+              <span className="font-bold text-amber-900 block mb-1">Penting: Buat Tabel di Supabase SQL Editor</span>
+              <p className="text-amber-700 leading-relaxed mb-1.5 text-[9.5px]">
+                Masuk ke Supabase Dashboard &gt; SQL Editor, lalu jalankan query SQL berikut untuk membuat tabel penyimpanan data:
+              </p>
+              <pre className="bg-amber-950/5 text-amber-900 p-2 rounded-lg font-mono text-[9px] whitespace-pre-wrap select-all border border-amber-100">
+{`CREATE TABLE IF NOT EXISTS hadirdesa_store (
+  id TEXT PRIMARY KEY,
+  data JSONB NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);`}
+              </pre>
+            </div>
             {stats.supabaseError && (
               <div className="mt-2 pt-2 border-t border-amber-100 text-[9px] text-rose-700">
                 <span className="font-bold uppercase font-sans">Error Log:</span> {stats.supabaseError}
