@@ -299,7 +299,10 @@ export default function BerandaTab({ onSelectEmployeeHistory, onNavigateToTab }:
   id TEXT PRIMARY KEY,
   data JSONB NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);`}
+);
+
+-- PENTING: Nonaktifkan Row Level Security (RLS) agar Vercel dapat membaca & menulis data
+ALTER TABLE hadirdesa_store DISABLE ROW LEVEL SECURITY;`}
               </pre>
             </div>
             {stats.supabaseError && (

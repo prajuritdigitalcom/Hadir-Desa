@@ -136,7 +136,7 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 function getLocalInitialDB(): DBStructure {
-  if (!fs.existsSync(DB_PATH)) {
+  const constructInitialDB = (): DBStructure => {
     const initialDB: DBStructure = {
       employees: [
         { id: "1", name: "Gatot Suhartono", position: "Kepala Desa", phone: "081234567890", photo_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150", active: true, created_at: new Date().toISOString() },
@@ -313,7 +313,6 @@ function getLocalInitialDB(): DBStructure {
       }
     });
 
-    // Seed some today check-ins (so the live stats have data when first loaded!)
     initialDB.attendance.push({
       id: `att_${idCounter++}`,
       employee_id: "1",
@@ -383,11 +382,23 @@ function getLocalInitialDB(): DBStructure {
     try {
       fs.writeFileSync(DB_PATH, JSON.stringify(initialDB, null, 2), "utf-8");
     } catch (err) {
-      // ignore on read-only filesystems
+      // ignore
     }
     return initialDB;
+  };
+
+  try {
+    if (fs.existsSync(DB_PATH)) {
+      const data = fs.readFileSync(DB_PATH, "utf-8");
+      if (data && data.trim()) {
+        return JSON.parse(data);
+      }
+    }
+  } catch (err) {
+    console.error("Gagal membaca db.json lokal, membuat ulang:", err);
   }
-  return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
+
+  return constructInitialDB();
 }
 
 function readDB(): DBStructure {

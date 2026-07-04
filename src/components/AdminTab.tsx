@@ -108,7 +108,16 @@ export default function AdminTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: "admin@ringintunggal.go.id", password: passwordInput })
       });
-      const data = await res.json();
+      
+      let data: any;
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}: ${res.statusText}`);
+      }
+
       if (res.ok) {
         localStorage.setItem("hadirdesa_admin_token", data.token);
         localStorage.setItem("hadirdesa_admin_email", data.email);
@@ -119,8 +128,15 @@ export default function AdminTab() {
       } else {
         setLoginError(data.error || "Password Admin salah.");
       }
-    } catch (err) {
-      setLoginError("Koneksi gagal.");
+    } catch (err: any) {
+      console.error("Login error:", err);
+      // Clean up verbose HTML error response if any
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes("<!DOCTYPE") || errMsg.includes("<html")) {
+        setLoginError("Koneksi gagal atau server bermasalah (Response non-JSON/500/504). Pastikan server/database terhubung.");
+      } else {
+        setLoginError(`Koneksi gagal: ${errMsg}`);
+      }
     }
   };
 
@@ -142,15 +158,30 @@ export default function AdminTab() {
       const res = await fetch("/api/admin/reset-password-default", {
         method: "POST"
       });
-      const data = await res.json();
+      
+      let data: any;
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}: ${res.statusText}`);
+      }
+
       if (res.ok) {
         setResetMessage(data.message || "Kata sandi berhasil direset!");
         setPasswordInput("admindesa"); // prefill for easy access!
       } else {
         setLoginError(data.error || "Gagal mereset kata sandi.");
       }
-    } catch (err) {
-      setLoginError("Gagal menghubungi server untuk mereset kata sandi.");
+    } catch (err: any) {
+      console.error("Reset password error:", err);
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes("<!DOCTYPE") || errMsg.includes("<html")) {
+        setLoginError("Gagal menghubungi server: Server mengembalikan error non-JSON. Periksa log server Vercel.");
+      } else {
+        setLoginError(`Gagal menghubungi server untuk mereset kata sandi: ${errMsg}`);
+      }
     } finally {
       setIsResetting(false);
     }
