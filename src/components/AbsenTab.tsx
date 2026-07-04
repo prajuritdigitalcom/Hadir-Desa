@@ -34,6 +34,42 @@ export default function AbsenTab() {
   const [statusMsg, setStatusMsg] = useState<{ text: string; type: "success" | "error" | null }>({ text: "", type: null });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Browser Validation
+  const [isChrome, setIsChrome] = useState<boolean>(true);
+  const [copied, setCopied] = useState(false);
+
+  // Browser Check effect
+  useEffect(() => {
+    const checkBrowser = async () => {
+      const ua = navigator.userAgent;
+      
+      // 1. Check if it's Brave
+      let isBrave = false;
+      if ((navigator as any).brave && typeof (navigator as any).brave.isBrave === 'function') {
+        try {
+          isBrave = await (navigator as any).brave.isBrave();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      
+      // 2. Chrome UA verification
+      const hasChromeToken = ua.includes("Chrome") || ua.includes("CriOS");
+      
+      // We block non-Chrome browsers by checking for their known tokens
+      const isEdge = ua.includes("Edg") || ua.includes("Edge");
+      const isOpera = ua.includes("OPR") || ua.includes("Opera");
+      const isFirefox = ua.includes("Firefox") || ua.includes("FxAn");
+      const isSamsung = ua.includes("SamsungBrowser");
+      const isSafariOnly = ua.includes("Safari") && !hasChromeToken; // Standard Safari contains Safari but not Chrome
+      
+      const allowed = hasChromeToken && !isBrave && !isEdge && !isOpera && !isFirefox && !isSamsung && !isSafariOnly;
+      setIsChrome(allowed);
+    };
+    
+    checkBrowser();
+  }, []);
+
   // 1. Generate / Retrieve unique device ID
   useEffect(() => {
     let dId = localStorage.getItem("hadirdesa_device_id");
@@ -261,6 +297,59 @@ export default function AbsenTab() {
       setIsSubmitting(false);
     }
   };
+
+  if (!isChrome) {
+    const handleCopyLink = () => {
+      navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+      <div className="space-y-6 pb-20 select-none animate-fade-in">
+        <div>
+          <h2 className="font-heading text-lg font-extrabold text-rose-700">Akses Terbuka Dibatasi</h2>
+          <p className="text-[11px] text-slate-500 font-medium">Sistem Keamanan Absensi Perangkat Desa.</p>
+        </div>
+
+        <div className="rounded-3xl bg-white border border-rose-100 p-6 shadow-sm space-y-6 text-center">
+          <div className="mx-auto w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 border border-rose-100">
+            <Lock className="h-8 w-8 animate-pulse" />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="font-heading text-sm font-bold text-slate-800">Gunakan Browser Google Chrome</h3>
+            <p className="text-xs text-slate-600 leading-relaxed max-w-md mx-auto">
+              Untuk menjamin keunikan sesi perangkat (<span className="font-semibold text-slate-800">Device ID Lock</span>) dan mencegah manipulasi absensi dengan berpindah peramban (browser), Anda **wajib menggunakan Google Chrome** resmi.
+            </p>
+          </div>
+
+          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-left space-y-3">
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Petunjuk Akses:</h4>
+            <ol className="text-xs text-slate-600 space-y-2 list-decimal list-inside leading-relaxed">
+              <li>Salin tautan (link) website absensi di bawah ini.</li>
+              <li>Buka aplikasi <span className="font-semibold text-slate-800">Google Chrome</span> di HP Anda.</li>
+              <li>Tempelkan (paste) tautan tersebut ke kolom alamat Google Chrome.</li>
+              <li>Lakukan absensi masuk/pulang seperti biasa.</li>
+            </ol>
+          </div>
+
+          <div className="space-y-3">
+            <div className="bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-center text-xs font-mono select-all text-slate-600 truncate">
+              {window.location.href}
+            </div>
+
+            <button
+              onClick={handleCopyLink}
+              className="w-full bg-[#0A3981] hover:bg-blue-800 text-white font-heading font-bold text-xs p-3.5 rounded-xl shadow-md transition active:scale-95"
+            >
+              {copied ? "Tautan Berhasil Disalin! ✓" : "Salin Tautan Website"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20 select-none">

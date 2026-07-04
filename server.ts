@@ -732,6 +732,23 @@ app.post("/api/attendance/checkin", (req, res) => {
     return res.status(400).json({ error: "Data checkin tidak lengkap." });
   }
 
+  // Validate browser is Google Chrome
+  const userAgent = req.headers["user-agent"] || "";
+  const hasChromeToken = userAgent.includes("Chrome") || userAgent.includes("CriOS");
+  const isEdge = userAgent.includes("Edg") || userAgent.includes("Edge");
+  const isOpera = userAgent.includes("OPR") || userAgent.includes("Opera");
+  const isFirefox = userAgent.includes("Firefox") || userAgent.includes("FxAn");
+  const isSamsung = userAgent.includes("SamsungBrowser");
+  const isSafariOnly = userAgent.includes("Safari") && !hasChromeToken;
+
+  const isChrome = hasChromeToken && !isEdge && !isOpera && !isFirefox && !isSamsung && !isSafariOnly;
+
+  if (!isChrome) {
+    return res.status(400).json({ 
+      error: "Akses Absensi Ditolak: Anda wajib menggunakan browser Google Chrome resmi untuk melakukan absensi demi keamanan sesi perangkat." 
+    });
+  }
+
   const dbData = readDB();
   const employee = dbData.employees.find(e => e.id === employeeId && e.active);
   if (!employee) {
@@ -819,6 +836,23 @@ app.post("/api/attendance/checkout", (req, res) => {
   const { employeeId, latitude, longitude, deviceId } = req.body;
   if (!employeeId || latitude === undefined || longitude === undefined || !deviceId) {
     return res.status(400).json({ error: "Data checkout tidak lengkap." });
+  }
+
+  // Validate browser is Google Chrome
+  const userAgent = req.headers["user-agent"] || "";
+  const hasChromeToken = userAgent.includes("Chrome") || userAgent.includes("CriOS");
+  const isEdge = userAgent.includes("Edg") || userAgent.includes("Edge");
+  const isOpera = userAgent.includes("OPR") || userAgent.includes("Opera");
+  const isFirefox = userAgent.includes("Firefox") || userAgent.includes("FxAn");
+  const isSamsung = userAgent.includes("SamsungBrowser");
+  const isSafariOnly = userAgent.includes("Safari") && !hasChromeToken;
+
+  const isChrome = hasChromeToken && !isEdge && !isOpera && !isFirefox && !isSamsung && !isSafariOnly;
+
+  if (!isChrome) {
+    return res.status(400).json({ 
+      error: "Akses Absensi Ditolak: Anda wajib menggunakan browser Google Chrome resmi untuk melakukan absensi demi keamanan sesi perangkat." 
+    });
   }
 
   const dbData = readDB();
