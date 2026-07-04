@@ -42,13 +42,23 @@ let isConnectedToSupabaseOnce = false;
 let lastSupabaseError: string | null = null;
 
 function isSupabaseConfigured(): boolean {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
+  
+  if (!url || !key) {
+    return false;
+  }
+  
+  const cleanUrl = url.trim();
+  const cleanKey = key.trim();
+  
   return (
-    !!SUPABASE_URL &&
-    !!SUPABASE_KEY &&
-    !SUPABASE_URL.includes("YOUR_") &&
-    !SUPABASE_KEY.includes("YOUR_") &&
-    SUPABASE_URL !== "MY_SUPABASE_URL" &&
-    SUPABASE_KEY !== "MY_SUPABASE_KEY"
+    cleanUrl !== "" &&
+    cleanKey !== "" &&
+    !cleanUrl.includes("YOUR_") &&
+    !cleanKey.includes("YOUR_") &&
+    cleanUrl !== "MY_SUPABASE_URL" &&
+    cleanKey !== "MY_SUPABASE_KEY"
   );
 }
 
@@ -86,6 +96,11 @@ async function loadFromSupabase(): Promise<DBStructure> {
     throw new Error("No data returned from Supabase.");
   })();
 
+  // Handle background rejection to prevent unhandled promise rejection crashes
+  fetchPromise.catch((err) => {
+    console.warn("fetchPromise background rejection (ignored after race/timeout):", err);
+  });
+
   // Use Promise.race to abort after 4 seconds to prevent cold start / function timeouts
   return Promise.race([
     fetchPromise,
@@ -110,6 +125,11 @@ async function saveToSupabase(data: DBStructure) {
       throw error;
     }
   })();
+
+  // Handle background rejection to prevent unhandled promise rejection crashes
+  savePromise.catch((err) => {
+    console.warn("savePromise background rejection (ignored after race/timeout):", err);
+  });
 
   return Promise.race([
     savePromise,
