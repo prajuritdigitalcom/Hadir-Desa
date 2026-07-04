@@ -1,0 +1,6 @@
+{
+  "name": "HadirDesa Ringintunggal",
+  "description": "Sistem Transparansi Kehadiran Perangkat Desa Ringintunggal untuk meningkatkan transparansi pelayanan publik dan kedisiplinan.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
