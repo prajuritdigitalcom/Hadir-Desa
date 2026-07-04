@@ -9,7 +9,8 @@ import {
   RefreshCw, 
   MapPin, 
   Megaphone,
-  Briefcase
+  Briefcase,
+  Database
 } from "lucide-react";
 import { PublicStats, Announcement } from "../types";
 
@@ -250,6 +251,52 @@ export default function BerandaTab({ onSelectEmployeeHistory, onNavigateToTab }:
           </span>
         </div>
       </div>
+
+      {!stats.supabaseConnected && (
+        <div className="rounded-2xl bg-amber-50/90 border border-amber-200 p-4 text-amber-900 shadow-sm space-y-2 relative overflow-hidden">
+          <div className="absolute right-2 top-2 opacity-5">
+            <Database className="h-16 w-16" />
+          </div>
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-heading text-xs font-bold text-amber-800">
+                Aplikasi Berjalan dalam Mode Offline (Local Storage)
+              </h4>
+              <p className="text-[10px] text-amber-700 mt-1 leading-relaxed">
+                Data belum tersinkronisasi ke database Supabase Anda karena variabel lingkungan (Environment Variables) belum terkonfigurasi di Vercel.
+              </p>
+            </div>
+          </div>
+          
+          <div className="bg-white/80 border border-amber-100/50 rounded-xl p-3 space-y-1.5 text-[10px] text-amber-800 font-mono">
+            <div className="font-bold border-b border-amber-100 pb-1 mb-1 font-sans text-[11px] text-amber-900">
+              Cara Menghubungkan ke Supabase di Vercel:
+            </div>
+            <p className="font-sans text-[10px] text-amber-700 mb-1 leading-relaxed">
+              1. Buka <strong>Vercel Dashboard</strong> &gt; pilih project Anda.<br />
+              2. Masuk ke tab <strong>Settings</strong> &gt; <strong>Environment Variables</strong>.<br />
+              3. Tambahkan 2 variabel berikut:
+            </p>
+            <div className="flex items-center justify-between gap-2 bg-amber-100/40 p-1.5 rounded-lg select-all">
+              <span className="font-bold">SUPABASE_URL</span>
+              <span className="text-amber-900">https://xtaqulieahpvzztlrqwp.supabase.co</span>
+            </div>
+            <div className="flex items-center justify-between gap-2 bg-amber-100/40 p-1.5 rounded-lg select-all">
+              <span className="font-bold">SUPABASE_KEY</span>
+              <span className="text-amber-500 italic">Masukkan Anon/Service Key Supabase Anda</span>
+            </div>
+            <p className="font-sans text-[10px] text-amber-600 italic mt-1">
+              * Setelah ditambahkan, lakukan <strong>Redeploy</strong> di Vercel agar perubahan aktif.
+            </p>
+            {stats.supabaseError && (
+              <div className="mt-2 pt-2 border-t border-amber-100 text-[9px] text-rose-700">
+                <span className="font-bold uppercase font-sans">Error Log:</span> {stats.supabaseError}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Quick Action Button for Absen */}
       <div className="rounded-2xl bg-gradient-to-r from-[#0A3981] to-blue-700 p-4 text-white shadow-md flex items-center justify-between gap-4">

@@ -76,4 +76,5 @@ export interface PublicStats {
   onDutyToday: number;
   attendancePercentage: number;
   supabaseConnected?: boolean;
+  supabaseError?: string | null;
 }

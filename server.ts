@@ -32,13 +32,15 @@ interface DBStructure {
 }
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://xtaqulieahpvzztlrqwp.supabase.co";
-const SUPABASE_KEY = process.env.SUPABASE_KEY || "sb_publishable_F39FBkiHAG7wpNeBxX5XlA_A4R-ocB2";
+const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || "sb_publishable_F39FBkiHAG7wpNeBxX5XlA_A4R-ocB2";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let globalDB: DBStructure | null = null;
 let dbDirty = false;
 let isConnectedToSupabase = false;
+let isConnectedToSupabaseOnce = false;
+let lastSupabaseError: string | null = null;
 
 function isSupabaseConfigured(): boolean {
   return (
@@ -434,19 +436,22 @@ app.use("/api", async (req, res, next) => {
       try {
         globalDB = await loadFromSupabase();
         isConnectedToSupabase = true;
+        isConnectedToSupabaseOnce = true;
+        lastSupabaseError = null;
         console.log("Successfully connected to Supabase and loaded database.");
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to load from Supabase, falling back to local file:", err);
         globalDB = getLocalInitialDB();
         isConnectedToSupabase = false;
+        lastSupabaseError = err?.message || String(err);
       }
     } else {
       globalDB = getLocalInitialDB();
       isConnectedToSupabase = false;
+      lastSupabaseError = "Supabase configuration is missing or invalid in server environment variables.";
     }
   } else if (isSupabaseConfigured()) {
-    // If globalDB exists, we keep isConnectedToSupabase as true since it was successfully loaded
-    isConnectedToSupabase = true;
+    isConnectedToSupabase = isConnectedToSupabaseOnce;
   }
 
   // Intercept response to write back dirty database to Supabase before sending!
@@ -539,7 +544,8 @@ function getTodayStats() {
 app.get("/api/public/stats", (req, res) => {
   res.json({
     ...getTodayStats(),
-    supabaseConnected: isConnectedToSupabase
+    supabaseConnected: isConnectedToSupabase,
+    supabaseError: lastSupabaseError
   });
 });
 
