@@ -506,7 +506,10 @@ export default function AdminTab() {
             </div>
 
             {loginError && (
-              <p className="text-rose-600 text-xs font-bold text-center">{loginError}</p>
+              <div className="text-rose-600 text-xs font-semibold bg-rose-50 border border-rose-200 rounded-xl p-3 whitespace-pre-wrap break-words text-left max-h-60 overflow-y-auto font-mono leading-relaxed">
+                <div className="font-sans font-bold mb-1 uppercase tracking-wider text-[10px] text-rose-700">Detail Kesalahan (Error Details):</div>
+                {loginError}
+              </div>
             )}
 
             {resetMessage && (
