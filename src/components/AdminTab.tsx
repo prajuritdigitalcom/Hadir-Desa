@@ -488,7 +488,7 @@ export default function AdminTab() {
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email Akun</label>
               <input
                 type="email"
-                placeholder="admin@desa.go.id"
+                placeholder="Masukkan email akun admin..."
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-[#0A3981]"

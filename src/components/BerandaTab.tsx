@@ -147,7 +147,7 @@ export default function BerandaTab({ onSelectEmployeeHistory, onNavigateToTab }:
     <div className="space-y-6 pb-20 select-none">
       {/* Premium Hero Section */}
       <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#0A3981] via-[#0F4C9B] to-[#1D63B8] text-white p-6 shadow-md border border-blue-950/20">
-        {/* Header Row: Live Time & Database Status */}
+        {/* Header Row: Live Time */}
         <div className="flex items-center justify-between gap-2 mb-5 relative z-10">
           <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
@@ -155,22 +155,6 @@ export default function BerandaTab({ onSelectEmployeeHistory, onNavigateToTab }:
               {formattedDay}, {formattedDate} • {formattedTime} WIB
             </span>
           </div>
-
-          {stats.supabaseConnected ? (
-            <div className="flex items-center space-x-1.5 bg-emerald-500/20 backdrop-blur-md px-2.5 py-1 rounded-full border border-emerald-500/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-[9px] font-extrabold font-mono tracking-widest text-emerald-300 uppercase">
-                Supabase Connected
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-1.5 bg-amber-500/20 backdrop-blur-md px-2.5 py-1 rounded-full border border-amber-500/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-              <span className="text-[9px] font-extrabold font-mono tracking-widest text-amber-300 uppercase">
-                Local Storage
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Brand identity & introduction */}
@@ -333,11 +317,6 @@ ALTER TABLE hadirdesa_store DISABLE ROW LEVEL SECURITY;`}
         <div className="flex items-center justify-between">
           <h3 className="font-heading text-sm font-bold text-[#0A3981]">Daftar Kehadiran Hari Ini</h3>
           <div className="flex items-center space-x-1.5">
-            {stats.supabaseConnected && (
-              <span className="text-[9px] bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold tracking-wider">
-                SUPABASE
-              </span>
-            )}
             <span className="text-[9px] bg-[#0A3981]/10 text-[#0A3981] px-2 py-0.5 rounded-full font-mono font-bold">LIVE</span>
           </div>
         </div>

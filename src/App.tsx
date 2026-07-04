@@ -63,7 +63,13 @@ export default function App() {
           >
             {/* Custom Village Header Banner */}
             <div className="bg-[#0A3981] text-white px-5 py-4 flex items-center justify-between shadow-sm border-b border-blue-900 shrink-0 select-none">
-              <div className="flex items-center space-x-3">
+              <div 
+                onClick={() => {
+                  setActiveTab("beranda");
+                  setSelectedHistoryEmpId(undefined);
+                }}
+                className="flex items-center space-x-3 cursor-pointer hover:opacity-90 active:scale-95 transition"
+              >
                 <div className="bg-white p-1 rounded-xl shadow-md">
                   <img
                     src="https://i.ibb.co.com/DfLZtBrh/icon-ringintunggal-1.webp"
@@ -73,8 +79,8 @@ export default function App() {
                   />
                 </div>
                 <div>
-                  <h1 className="font-heading text-sm font-black tracking-wide leading-tight">HADIRDESA</h1>
-                  <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider leading-none">Ringintunggal</p>
+                  <h1 className="font-heading text-sm font-black tracking-wide leading-tight">ABSENSI ONLINE</h1>
+                  <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider leading-none">DESA RINGINTUNGGAL</p>
                 </div>
               </div>
               
