@@ -781,14 +781,73 @@ app.post("/api/attendance/checkout", (req, res) => {
 
 // ADMIN AUTH
 app.post("/api/admin/login", (req, res) => {
-  const { email, password } = req.body;
-  const dbData = readDB();
-  const correctPassword = dbData.settings.admin_password || "admindesa";
+  try {
+    const { email, password } = req.body;
+    const dbData = readDB();
+    
+    if (!dbData) {
+      return res.status(500).json({ error: "Database tidak terinisialisasi." });
+    }
+    
+    // Ensure settings exists
+    if (!dbData.settings) {
+      dbData.settings = {
+        office_latitude: -7.161048,
+        office_longitude: 111.725902,
+        radius_geofence: 50,
+        jam_masuk_mulai: "06:00",
+        jam_masuk_normal_berakhir: "08:00",
+        jam_pulang_minimal: "12:00",
+        jam_pulang_maksimal: "20:00",
+        toleransi_keterlambatan: 15,
+        admin_password: "admindesa"
+      };
+      writeDB(dbData);
+    }
+    
+    const correctPassword = dbData.settings.admin_password || "admindesa";
 
-  if (password === correctPassword) {
-    res.json({ token: correctPassword, email: email || "admin@ringintunggal.go.id" });
-  } else {
-    res.status(400).json({ error: "Kata sandi admin salah." });
+    if (password === correctPassword) {
+      res.json({ token: correctPassword, email: email || "admin@ringintunggal.go.id" });
+    } else {
+      res.status(400).json({ error: "Kata sandi admin salah." });
+    }
+  } catch (error: any) {
+    console.error("Error in login endpoint:", error);
+    res.status(500).json({ error: `Gagal memproses login: ${error?.message || error}` });
+  }
+});
+
+app.post("/api/admin/reset-password-default", (req, res) => {
+  try {
+    const dbData = readDB();
+    if (!dbData) {
+      return res.status(500).json({ error: "Database tidak terinisialisasi." });
+    }
+    
+    if (!dbData.settings) {
+      dbData.settings = {
+        office_latitude: -7.161048,
+        office_longitude: 111.725902,
+        radius_geofence: 50,
+        jam_masuk_mulai: "06:00",
+        jam_masuk_normal_berakhir: "08:00",
+        jam_pulang_minimal: "12:00",
+        jam_pulang_maksimal: "20:00",
+        toleransi_keterlambatan: 15,
+        admin_password: "admindesa"
+      };
+    } else {
+      dbData.settings.admin_password = "admindesa";
+    }
+    
+    // Write back and mark dirty to sync to Supabase
+    writeDB(dbData);
+    
+    res.json({ message: "Kata sandi admin berhasil direset kembali ke 'admindesa'. Silakan login menggunakan password default tersebut." });
+  } catch (error: any) {
+    console.error("Error in reset password endpoint:", error);
+    res.status(500).json({ error: `Gagal mereset kata sandi: ${error?.message || error}` });
   }
 });
 

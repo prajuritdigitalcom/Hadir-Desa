@@ -28,6 +28,8 @@ export default function AdminTab() {
   const [adminEmail, setAdminEmail] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
   
   // Navigation inside Admin Panel
   const [activeSubTab, setActiveSubTab] = useState<
@@ -127,6 +129,31 @@ export default function AdminTab() {
     localStorage.removeItem("hadirdesa_admin_email");
     setToken("");
     setIsAdminLoggedIn(false);
+  };
+
+  const handleResetPassword = async () => {
+    if (!window.confirm("Apakah Anda yakin ingin mengembalikan kata sandi admin ke default ('admindesa')?")) {
+      return;
+    }
+    setIsResetting(true);
+    setResetMessage("");
+    setLoginError("");
+    try {
+      const res = await fetch("/api/admin/reset-password-default", {
+        method: "POST"
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResetMessage(data.message || "Kata sandi berhasil direset!");
+        setPasswordInput("admindesa"); // prefill for easy access!
+      } else {
+        setLoginError(data.error || "Gagal mereset kata sandi.");
+      }
+    } catch (err) {
+      setLoginError("Gagal menghubungi server untuk mereset kata sandi.");
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   // Fetch admin content
@@ -451,12 +478,29 @@ export default function AdminTab() {
               <p className="text-rose-600 text-xs font-bold text-center">{loginError}</p>
             )}
 
+            {resetMessage && (
+              <p className="text-emerald-700 text-[11px] font-bold text-center bg-emerald-50 border border-emerald-150 rounded-xl p-3 leading-relaxed">
+                {resetMessage}
+              </p>
+            )}
+
             <button
               type="submit"
               className="w-full bg-[#0A3981] hover:bg-blue-800 text-white font-heading font-bold text-xs py-3.5 rounded-xl transition active:scale-95 uppercase tracking-wider shadow-sm"
             >
               Autentikasi Masuk
             </button>
+
+            <div className="text-center pt-1">
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={isResetting}
+                className="text-[10px] text-slate-400 hover:text-blue-700 font-bold transition underline decoration-dotted"
+              >
+                {isResetting ? "Mereset..." : "Lupa Kata Sandi? Reset ke Default ('admindesa')"}
+              </button>
+            </div>
           </form>
         </div>
       </div>
