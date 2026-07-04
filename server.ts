@@ -30,16 +30,28 @@ interface DBStructure {
   device_sessions: DeviceSession[];
 }
 
-const SUPABASE_URL = process.env.SUPABASE_URL || "https://xtaqulieahpvzztlrqwp.supabase.co";
-const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || "sb_publishable_F39FBkiHAG7wpNeBxX5XlA_A4R-ocB2";
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
 let globalDB: DBStructure | null = null;
 let dbDirty = false;
 let isConnectedToSupabase = false;
 let isConnectedToSupabaseOnce = false;
 let lastSupabaseError: string | null = null;
+
+let supabaseClient: any = null;
+
+function getSupabase() {
+  if (supabaseClient) return supabaseClient;
+  
+  const url = (process.env.SUPABASE_URL || "https://xtaqulieahpvzztlrqwp.supabase.co").trim();
+  const key = (process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || "sb_publishable_F39FBkiHAG7wpNeBxX5XlA_A4R-ocB2").trim();
+  
+  try {
+    supabaseClient = createClient(url, key);
+  } catch (err) {
+    console.error("Gagal menginisialisasi client Supabase:", err);
+    supabaseClient = null;
+  }
+  return supabaseClient;
+}
 
 function isSupabaseConfigured(): boolean {
   const url = process.env.SUPABASE_URL;
@@ -67,8 +79,13 @@ async function loadFromSupabase(): Promise<DBStructure> {
     throw new Error("Supabase is not configured.");
   }
 
+  const client = getSupabase();
+  if (!client) {
+    throw new Error("Supabase client is not initialized.");
+  }
+
   const fetchPromise = (async () => {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from("hadirdesa_store")
       .select("data")
       .eq("id", "main_db")
@@ -77,7 +94,7 @@ async function loadFromSupabase(): Promise<DBStructure> {
     if (error) {
       if (error.code === "PGRST116") { // Record not found
         const initialDB = getLocalInitialDB();
-        const { error: insertError } = await supabase
+        const { error: insertError } = await client
           .from("hadirdesa_store")
           .insert({ id: "main_db", data: initialDB });
         
@@ -115,8 +132,13 @@ async function saveToSupabase(data: DBStructure) {
     return;
   }
 
+  const client = getSupabase();
+  if (!client) {
+    return;
+  }
+
   const savePromise = (async () => {
-    const { error } = await supabase
+    const { error } = await client
       .from("hadirdesa_store")
       .upsert({ id: "main_db", data, updated_at: new Date().toISOString() });
 
@@ -153,6 +175,14 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c; // in meters
+}
+
+function getLocalDateString(offsetDays = 0) {
+  const date = new Date();
+  // Adjust to Indonesian West Time (WIB, UTC+7) + offsetDays
+  const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+  const wibDate = new Date(utc + 3600000 * 7 + (offsetDays * 24 * 60 * 60 * 1000));
+  return wibDate.toISOString().split("T")[0];
 }
 
 function getLocalInitialDB(): DBStructure {
@@ -194,7 +224,13 @@ function getLocalInitialDB(): DBStructure {
     };
 
     // Seed history data
-    const dates = ["2026-07-02", "2026-07-01", "2026-06-30", "2026-06-29"];
+    const todayStr = getLocalDateString(0);
+    const dates = [
+      getLocalDateString(-1),
+      getLocalDateString(-2),
+      getLocalDateString(-3),
+      getLocalDateString(-4)
+    ];
     let idCounter = 100;
     
     dates.forEach(date => {
@@ -336,7 +372,7 @@ function getLocalInitialDB(): DBStructure {
     initialDB.attendance.push({
       id: `att_${idCounter++}`,
       employee_id: "1",
-      attendance_date: "2026-07-03",
+      attendance_date: todayStr,
       checkin_time: "07:05",
       checkout_time: null,
       total_minutes: 0,
@@ -347,12 +383,12 @@ function getLocalInitialDB(): DBStructure {
       checkin_distance: 0.5,
       checkout_distance: null,
       status: "Sedang Bertugas",
-      created_at: "2026-07-03T07:05:00Z"
+      created_at: `${todayStr}T07:05:00Z`
     });
     initialDB.attendance.push({
       id: `att_${idCounter++}`,
       employee_id: "2",
-      attendance_date: "2026-07-03",
+      attendance_date: todayStr,
       checkin_time: "07:12",
       checkout_time: "15:00",
       total_minutes: 468,
@@ -363,12 +399,12 @@ function getLocalInitialDB(): DBStructure {
       checkin_distance: 3.2,
       checkout_distance: 2.1,
       status: "Hadir",
-      created_at: "2026-07-03T07:12:00Z"
+      created_at: `${todayStr}T07:12:00Z`
     });
     initialDB.attendance.push({
       id: `att_${idCounter++}`,
       employee_id: "3",
-      attendance_date: "2026-07-03",
+      attendance_date: todayStr,
       checkin_time: "07:45",
       checkout_time: null,
       total_minutes: 0,
@@ -379,7 +415,7 @@ function getLocalInitialDB(): DBStructure {
       checkin_distance: 1.4,
       checkout_distance: null,
       status: "Sedang Bertugas",
-      created_at: "2026-07-03T07:45:00Z"
+      created_at: `${todayStr}T07:45:00Z`
     });
 
     initialDB.device_sessions.push({
@@ -387,7 +423,7 @@ function getLocalInitialDB(): DBStructure {
       device_id: "mock_device_gatot",
       employee_id: "1",
       employee_name: "Gatot Suhartono",
-      checkin_time: "2026-07-03T07:05:00Z",
+      checkin_time: `${todayStr}T07:05:00Z`,
       status: "locked"
     });
     initialDB.device_sessions.push({
@@ -395,7 +431,7 @@ function getLocalInitialDB(): DBStructure {
       device_id: "mock_device_siti",
       employee_id: "3",
       employee_name: "Siti Aminah",
-      checkin_time: "2026-07-03T07:45:00Z",
+      checkin_time: `${todayStr}T07:45:00Z`,
       status: "locked"
     });
 
@@ -467,15 +503,6 @@ function logAudit(action: string, target: string, email = "admin@ringintunggal.g
     dbData.audit_logs = dbData.audit_logs.slice(0, 200);
   }
   writeDB(dbData);
-}
-
-// Get standard date in local timezone YYYY-MM-DD
-function getLocalDateString() {
-  const date = new Date();
-  // Adjust to Indonesian West Time (WIB, UTC+7)
-  const utc = date.getTime() + date.getTimezoneOffset() * 60000;
-  const wibDate = new Date(utc + 3600000 * 7);
-  return wibDate.toISOString().split("T")[0];
 }
 
 // APIs
