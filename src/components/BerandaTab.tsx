@@ -146,39 +146,34 @@ export default function BerandaTab({ onSelectEmployeeHistory, onNavigateToTab }:
     <div className="space-y-6 pb-20 select-none">
       {/* Premium Hero Section */}
       <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#0A3981] via-[#0F4C9B] to-[#1D63B8] text-white p-6 shadow-md border border-blue-950/20">
-        {/* Header Row: Live Time & Refresh */}
-        <div className="flex items-center justify-between mb-5 relative z-10">
+        {/* Header Row: Live Time & Database Status */}
+        <div className="flex items-center justify-between gap-2 mb-5 relative z-10">
           <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
             <span className="text-[10px] font-bold font-mono tracking-wider text-amber-300 uppercase">
               {formattedDay}, {formattedDate} • {formattedTime} WIB
             </span>
           </div>
-          
-          <button 
-            onClick={handleRefresh}
-            className="p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition active:scale-95"
-            disabled={refreshing}
-            title="Segarkan Data"
-          >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          </button>
+
+          {stats.supabaseConnected ? (
+            <div className="flex items-center space-x-1.5 bg-emerald-500/20 backdrop-blur-md px-2.5 py-1 rounded-full border border-emerald-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-[9px] font-extrabold font-mono tracking-widest text-emerald-300 uppercase">
+                Supabase Connected
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1.5 bg-amber-500/20 backdrop-blur-md px-2.5 py-1 rounded-full border border-amber-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              <span className="text-[9px] font-extrabold font-mono tracking-widest text-amber-300 uppercase">
+                Local Storage
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Brand identity & introduction */}
         <div className="space-y-2 relative z-10">
-          <div className="flex items-center space-x-2.5">
-            <div className="bg-white p-1 rounded-xl shadow-md shrink-0">
-              <img 
-                src="https://i.ibb.co.com/DfLZtBrh/icon-ringintunggal-1.webp" 
-                alt="Icon Desa" 
-                className="h-7 w-7 object-contain"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-            <span className="text-[10px] tracking-widest font-extrabold uppercase text-amber-400">Pemerintah Desa Ringintunggal</span>
-          </div>
-
           <h2 className="font-heading text-xl font-black tracking-tight leading-tight pt-1">
             Sistem Transparansi Absensi
           </h2>
@@ -274,7 +269,14 @@ export default function BerandaTab({ onSelectEmployeeHistory, onNavigateToTab }:
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-heading text-sm font-bold text-[#0A3981]">Daftar Kehadiran Hari Ini</h3>
-          <span className="text-[10px] bg-[#0A3981]/10 text-[#0A3981] px-2 py-0.5 rounded-full font-mono font-bold">LIVE</span>
+          <div className="flex items-center space-x-1.5">
+            {stats.supabaseConnected && (
+              <span className="text-[9px] bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold tracking-wider">
+                SUPABASE
+              </span>
+            )}
+            <span className="text-[9px] bg-[#0A3981]/10 text-[#0A3981] px-2 py-0.5 rounded-full font-mono font-bold">LIVE</span>
+          </div>
         </div>
 
         {/* Search input */}

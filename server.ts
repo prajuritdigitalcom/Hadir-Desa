@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
+import { createClient } from "@supabase/supabase-js";
 import { 
   Employee, 
   Attendance, 
@@ -30,6 +31,74 @@ interface DBStructure {
   device_sessions: DeviceSession[];
 }
 
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://xtaqulieahpvzztlrqwp.supabase.co";
+const SUPABASE_KEY = process.env.SUPABASE_KEY || "sb_publishable_F39FBkiHAG7wpNeBxX5XlA_A4R-ocB2";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let globalDB: DBStructure | null = null;
+let dbDirty = false;
+let isConnectedToSupabase = false;
+
+function isSupabaseConfigured(): boolean {
+  return (
+    !!SUPABASE_URL &&
+    !!SUPABASE_KEY &&
+    !SUPABASE_URL.includes("YOUR_") &&
+    !SUPABASE_KEY.includes("YOUR_") &&
+    SUPABASE_URL !== "MY_SUPABASE_URL" &&
+    SUPABASE_KEY !== "MY_SUPABASE_KEY"
+  );
+}
+
+async function loadFromSupabase(): Promise<DBStructure> {
+  if (!isSupabaseConfigured()) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  const { data, error } = await supabase
+    .from("hadirdesa_store")
+    .select("data")
+    .eq("id", "main_db")
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") { // Record not found
+      const initialDB = getLocalInitialDB();
+      const { error: insertError } = await supabase
+        .from("hadirdesa_store")
+        .insert({ id: "main_db", data: initialDB });
+      
+      if (insertError) {
+        console.error("Failed to seed initial DB to Supabase:", insertError);
+        throw insertError;
+      }
+      return initialDB;
+    }
+    throw error;
+  }
+
+  if (data && data.data) {
+    return data.data as DBStructure;
+  }
+  throw new Error("No data returned from Supabase.");
+}
+
+async function saveToSupabase(data: DBStructure) {
+  if (!isSupabaseConfigured()) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("hadirdesa_store")
+    .upsert({ id: "main_db", data, updated_at: new Date().toISOString() });
+
+  if (error) {
+    console.error("Error writing to Supabase:", error);
+    throw error;
+  }
+}
+
 // Haversine Distance helper
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371e3; // Earth's radius in meters
@@ -46,7 +115,7 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c; // in meters
 }
 
-function readDB(): DBStructure {
+function getLocalInitialDB(): DBStructure {
   if (!fs.existsSync(DB_PATH)) {
     const initialDB: DBStructure = {
       employees: [
@@ -291,14 +360,31 @@ function readDB(): DBStructure {
       status: "locked"
     });
 
-    fs.writeFileSync(DB_PATH, JSON.stringify(initialDB, null, 2), "utf-8");
+    try {
+      fs.writeFileSync(DB_PATH, JSON.stringify(initialDB, null, 2), "utf-8");
+    } catch (err) {
+      // ignore on read-only filesystems
+    }
     return initialDB;
   }
   return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
 }
 
+function readDB(): DBStructure {
+  if (globalDB) {
+    return globalDB;
+  }
+  return getLocalInitialDB();
+}
+
 function writeDB(data: DBStructure) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
+  globalDB = data;
+  dbDirty = true;
+  try {
+    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
+  } catch (err) {
+    // ignore on read-only filesystems (like Vercel)
+  }
 }
 
 // Admin auth middleware
@@ -342,6 +428,44 @@ function getLocalDateString() {
 }
 
 // APIs
+app.use("/api", async (req, res, next) => {
+  if (globalDB === null) {
+    if (isSupabaseConfigured()) {
+      try {
+        globalDB = await loadFromSupabase();
+        isConnectedToSupabase = true;
+        console.log("Successfully connected to Supabase and loaded database.");
+      } catch (err) {
+        console.error("Failed to load from Supabase, falling back to local file:", err);
+        globalDB = getLocalInitialDB();
+        isConnectedToSupabase = false;
+      }
+    } else {
+      globalDB = getLocalInitialDB();
+      isConnectedToSupabase = false;
+    }
+  } else if (isSupabaseConfigured()) {
+    // If globalDB exists, we keep isConnectedToSupabase as true since it was successfully loaded
+    isConnectedToSupabase = true;
+  }
+
+  // Intercept response to write back dirty database to Supabase before sending!
+  const originalJson = res.json;
+  res.json = async function (this: express.Response, body?: any) {
+    if (dbDirty && globalDB && isSupabaseConfigured()) {
+      try {
+        await saveToSupabase(globalDB);
+        dbDirty = false;
+      } catch (err) {
+        console.error("Failed to save to Supabase:", err);
+      }
+    }
+    return originalJson.call(this, body);
+  } as any;
+
+  next();
+});
+
 app.get("/api/public/settings", (req, res) => {
   const dbData = readDB();
   // Don't send the password in public settings!
@@ -413,7 +537,10 @@ function getTodayStats() {
 }
 
 app.get("/api/public/stats", (req, res) => {
-  res.json(getTodayStats());
+  res.json({
+    ...getTodayStats(),
+    supabaseConnected: isConnectedToSupabase
+  });
 });
 
 app.get("/api/public/attendance/today", (req, res) => {
@@ -961,9 +1088,13 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+  if (process.env.VERCEL !== "1") {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  }
 }
 
 startServer();
+
+export default app;

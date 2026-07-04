@@ -61,19 +61,6 @@ export default function App() {
             transition={{ duration: 0.4, ease: "easeOut" }}
             className="w-full max-w-[430px] h-screen sm:h-[844px] bg-[#f8fafc] sm:rounded-[40px] sm:shadow-[0_0_50px_rgba(0,0,0,0.4)] border border-slate-800/80 overflow-hidden relative flex flex-col"
           >
-            {/* Mobile Status Bar */}
-            <div className="bg-[#0A3981] text-white px-6 pt-3 pb-2 flex justify-between items-center text-[11px] font-bold font-heading select-none shrink-0">
-              <div className="flex items-center space-x-1">
-                <Clock className="h-3 w-3 text-amber-400" />
-                <span>{statusTime} WIB</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-[10px] bg-emerald-500 px-1.5 py-0.5 rounded text-white font-mono leading-none">GPS</span>
-                <Wifi className="h-3.5 w-3.5 text-slate-300" />
-                <Battery className="h-3.5 w-3.5 text-slate-300" />
-              </div>
-            </div>
-
             {/* Custom Village Header Banner */}
             <div className="bg-[#0A3981] text-white px-5 py-4 flex items-center justify-between shadow-sm border-b border-blue-900 shrink-0 select-none">
               <div className="flex items-center space-x-3">
